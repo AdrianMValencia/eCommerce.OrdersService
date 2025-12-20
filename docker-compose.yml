@@ -1,0 +1,26 @@
+services:
+  ecommerce.ordersservice.api:
+    image: adrianmvalencia/ecommerce-microservice-orders:v1.0
+    environment:
+     MONGODB_HOST: mongo-host-microserviceorders
+     MONGODB_PORT: 27017
+     MONGODB_DATABASE: eCommerceOrdersServiceDb
+     UsersMicroserviceName: microservice-users
+     UsersMicroservicePort: 9090
+    ports:
+     - 7000:7000
+    networks:
+     - ecommerce-global-network
+  container-mongodb:
+    image: mongo:latest
+    ports:
+     - 27017:27017
+    volumes:
+     - ./mongo-init:/docker-entrypoint-initdb.d
+    networks:
+     - ecommerce-global-network
+    hostname: mongo-host-microserviceorders
+networks:
+  ecommerce-global-network:
+   driver: bridge
+   external: true

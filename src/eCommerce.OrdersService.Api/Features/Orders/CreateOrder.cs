@@ -1,10 +1,10 @@
 ﻿using Carter;
 using eCommerce.OrdersService.Api.Abstractions.Messaging;
 using eCommerce.OrdersService.Api.Entities;
+using eCommerce.OrdersService.Api.HttpClients;
 using eCommerce.OrdersService.Api.Shared.Bases;
 using FluentValidation;
 using Mapster;
-using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 
 namespace eCommerce.OrdersService.Api.Features.Orders;
@@ -66,10 +66,12 @@ public class CreateOrder
     {
         private readonly IMongoCollection<Order> _orders;
         private readonly string collectionName = "orders";
+        private readonly IUsersMicroserviceClient _usersMicroserviceClient;
 
-        public Handler(IMongoDatabase mongoDatabase)
+        public Handler(IMongoDatabase mongoDatabase, IUsersMicroserviceClient usersMicroserviceClient)
         {
             _orders = mongoDatabase.GetCollection<Order>(collectionName);
+            _usersMicroserviceClient = usersMicroserviceClient;
         }
 
         public async Task<BaseResponse<bool>> Handle(Command command, CancellationToken cancellationToken)
@@ -78,7 +80,15 @@ public class CreateOrder
 
             try
             {
-                // Validar si el usuario existe : UsersMicroservice
+                var user = await _usersMicroserviceClient
+                    .GetUserByUserId(command.UserID, cancellationToken);
+
+                if (user is null)
+                {
+                    response.IsSuccess = false;
+                    response.Message = "User not found.";
+                    return response;
+                }
 
                 var order = command.Adapt<Order>();
                 order.OrderID = Guid.NewGuid();

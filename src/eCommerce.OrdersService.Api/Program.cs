@@ -1,5 +1,6 @@
 using Carter;
 using eCommerce.OrdersService.Api;
+using eCommerce.OrdersService.Api.HttpClients;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,12 @@ builder.Services
 builder.Services.AddCarter();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+builder.Services.AddHttpClient<IUsersMicroserviceClient, UsersMicroserviceClient>(client =>
+{
+    client.BaseAddress = new
+        Uri($"http://{builder.Configuration["UsersMicroserviceName"]}:{builder.Configuration["UsersMicroservicePort"]}");
+});
 
 var app = builder.Build();
 
