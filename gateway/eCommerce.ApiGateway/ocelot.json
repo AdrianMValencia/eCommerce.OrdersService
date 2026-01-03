@@ -1,0 +1,63 @@
+{
+  "Routes": [
+    {
+      "UpstreamPathTemplate": "/gateway/orders",
+      "DownstreamPathTemplate": "/api/orders",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "ecommerce.ordersservice.api",
+          "Port": 7000
+        }
+      ],
+      "UpstreamHttpMethod": [
+        "Get"
+      ],
+      "DownstreamScheme": "http"
+      //"AuthenticationOptions": {
+      //  "AuthenticationProviderKey": "Bearer"
+      //}
+    },
+    {
+      "UpstreamPathTemplate": "/gateway/product/{productID}",
+      "DownstreamPathTemplate": "/api/product/{productID}",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "ecommerce.productsservice.api",
+          "Port": 8080
+        }
+      ],
+      "QoSOptions": {
+        "ExceptionsAllowedBeforeBreaking": 3,
+        "DurationOfBreak": 10000,
+        "TimeoutValue": 5000
+      },
+      "RateLimitOptions": {
+        "ClientIdHeader": "ClientId",
+        "EnableRateLimiting": true,
+        "EnableHeaders": true,
+        "Limit": 3,
+        "Period": "1m",
+        "Wait": "30s",
+        "StatusCode": 429,
+        "QuotaMessage": "¡Se superó la cuota de llamadas API! Se admiten {0} por {1}",
+        "KeyPrefix": "ocelot-rate-limit"
+      },
+      "UpstreamHttpMethod": [
+        "Get"
+      ],
+      "DownstreamScheme": "http",
+      "CacheOptions": {
+        "TltSeconds": 30
+      }
+    }
+  ],
+  /*
+   Cliente llamará:
+   http://localhost:5000/gateway/orders
+   Gateway redirigirá a:
+   http://ecommerce.ordersservice.api:7000/api/orders
+  */
+  "GlobalConfiguration": {
+    "BaseUrl": "http://localhost:5000"
+  }
+}

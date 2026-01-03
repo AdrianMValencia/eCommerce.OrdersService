@@ -11,7 +11,9 @@
         "UsersMicroserviceName": "localhost",
         "UsersMicroservicePort": "9090",
         "ProductsMicroserviceName": "localhost",
-        "ProductsMicroservicePort": "8080"
+        "ProductsMicroservicePort": "8080",
+        "REDIS_HOST": "redis",
+        "REDIS_PORT": "6379"
       },
       "dotnetRunMessages": true,
       "applicationUrl": "http://localhost:5161"
@@ -27,7 +29,9 @@
         "UsersMicroserviceName": "localhost",
         "UsersMicroservicePort": "9090",
         "ProductsMicroserviceName": "localhost",
-        "ProductsMicroservicePort": "8080"
+        "ProductsMicroservicePort": "8080",
+        "REDIS_HOST": "redis",
+        "REDIS_PORT": "6379"
       },
       "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:7009;http://localhost:5161"
@@ -45,7 +49,9 @@
         "UsersMicroserviceName": "localhost",
         "UsersMicroservicePort": "9090",
         "ProductsMicroserviceName": "localhost",
-        "ProductsMicroservicePort": "8080"
+        "ProductsMicroservicePort": "8080",
+        "REDIS_HOST": "redis",
+        "REDIS_PORT": "6379"
       },
       "publishAllPorts": true,
       "useSSL": true

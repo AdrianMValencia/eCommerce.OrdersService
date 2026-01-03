@@ -1,7 +1,9 @@
 ﻿using Carter;
 using eCommerce.OrdersService.Api.Abstractions.Messaging;
 using eCommerce.OrdersService.Api.Contracts.Orders;
+using eCommerce.OrdersService.Api.Contracts.Products;
 using eCommerce.OrdersService.Api.Entities;
+using eCommerce.OrdersService.Api.HttpClients.Products;
 using eCommerce.OrdersService.Api.Shared.Bases;
 using Mapster;
 using MongoDB.Driver;
@@ -22,10 +24,14 @@ public class GetByIdOrder
     {
         private readonly IMongoCollection<Order> _orders;
         private readonly string collectionName = "orders";
+        private readonly IProductsMicroserviceClient _productsMicroserviceClient;
 
-        public Handler(IMongoDatabase mongoDatabase)
+
+        public Handler(IMongoDatabase mongoDatabase, 
+            IProductsMicroserviceClient productsMicroserviceClient)
         {
             _orders = mongoDatabase.GetCollection<Order>(collectionName);
+            _productsMicroserviceClient = productsMicroserviceClient;
         }
 
         public async Task<BaseResponse<OrderResponse>> Handle(Query query, CancellationToken cancellationToken)
@@ -42,16 +48,40 @@ public class GetByIdOrder
                     .Find(filter)
                     .FirstOrDefaultAsync(cancellationToken);
 
+                if (order is null)
+                {
+                    response.IsSuccess = false;
+                    response.Message = "La orden no existe.";
+                    return response;
+                }
+
                 var orderResponse = order.Adapt<OrderResponse>();
+
+                var productCache = new Dictionary<Guid, GetAllProductsResponseDto>();
+
+                foreach (var item in orderResponse.OrderItems)
+                {
+                    if (!productCache.TryGetValue(item.ProductID, out var product))
+                    {
+                        var productResponse = await _productsMicroserviceClient
+                            .GetProductByProductId(item.ProductID, cancellationToken);
+
+                        if (productResponse?.Data is null)
+                            continue;
+
+                        product = productResponse.Data;
+                        productCache[item.ProductID] = product;
+                    }
+                }
 
                 response.IsSuccess = true;
                 response.Data = orderResponse;
-                response.Message = "Order retrieved successfully.";
+                response.Message = "Orders retrieved successfully.";
             }
             catch (Exception ex)
             {
                 response.IsSuccess = false;
-                response.Message = $"An error occurred while retrieving the order. {ex.Message}";
+                response.Message = ex.Message;
             }
 
             return response;
@@ -70,7 +100,7 @@ public class GetByIdOrder
                 CancellationToken cancellationToken) =>
             {
                 var query = new Query { OrderID = orderId };
-                
+
                 var response = await dispatcher
                     .Dispatch<Query, OrderResponse>(query, cancellationToken);
 

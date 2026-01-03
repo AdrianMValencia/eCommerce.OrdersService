@@ -2,5 +2,6 @@
   <Project Path="docker-compose.dcproj">
     <Build />
   </Project>
+  <Project Path="gateway/eCommerce.ApiGateway/eCommerce.ApiGateway.csproj" Id="6d6767fd-3da2-4c7e-a640-e77775839f0b" />
   <Project Path="src/eCommerce.OrdersService.Api/eCommerce.OrdersService.Api.csproj" />
 </Solution>

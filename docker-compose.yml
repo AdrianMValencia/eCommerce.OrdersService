@@ -13,6 +13,8 @@ services:
      UsersMicroservicePort: 9090
      ProductsMicroserviceName: ecommerce.productsservice.api
      ProductsMicroservicePort: 8080
+     REDIS_HOST: redis
+     REDIS_PORT: 6379
     ports:
      - 7000:7000
     networks:
@@ -30,6 +32,26 @@ services:
     networks:
      - microservices-orders-network
     hostname: mongo-host-microserviceorders
+
+  redis:
+   image: redis:latest
+   ports:
+    - 6379:6379
+   volumes:
+    - C:\Projects amechato\MICROSERVICES .NET 10 - ECOMMERCE\eCommerce.OrdersService\redis-cache:/data
+   networks:
+    - ecommerce-global-network
+   hostname: redis
+
+  apigateway:
+   image: apigateway
+   build:
+    context: .
+    dockerfile: gateway/eCommerce.ApiGateway/Dockerfile
+   ports:
+    - 5000:8080
+   networks:
+    - ecommerce-global-network
 
 networks:
   microservices-orders-network:

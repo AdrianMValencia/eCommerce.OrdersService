@@ -1,7 +1,9 @@
 ﻿using Carter;
 using eCommerce.OrdersService.Api.Abstractions.Messaging;
 using eCommerce.OrdersService.Api.Contracts.Orders;
+using eCommerce.OrdersService.Api.Contracts.Products;
 using eCommerce.OrdersService.Api.Entities;
+using eCommerce.OrdersService.Api.HttpClients.Products;
 using eCommerce.OrdersService.Api.Shared.Bases;
 using Mapster;
 using MongoDB.Driver;
@@ -22,10 +24,12 @@ public class GetAllOrders
     {
         private readonly IMongoCollection<Order> _orders;
         private readonly string collectionName = "orders";
+        private readonly IProductsMicroserviceClient _productsMicroserviceClient;
 
-        public Handler(IMongoDatabase mongoDatabase)
+        public Handler(IMongoDatabase mongoDatabase, IProductsMicroserviceClient productsMicroserviceClient)
         {
             _orders = mongoDatabase.GetCollection<Order>(collectionName);
+            _productsMicroserviceClient = productsMicroserviceClient;
         }
 
         public async Task<BaseResponse<IEnumerable<OrderResponse>>> Handle(Query query, CancellationToken cancellationToken)
@@ -35,13 +39,34 @@ public class GetAllOrders
             try
             {
                 var orders = await _orders
-                    .Find(_ => true)
-                    .ToListAsync(cancellationToken);
+                   .Find(_ => true)
+                   .ToListAsync(cancellationToken);
 
-                var orderResponse = orders.Adapt<IEnumerable<OrderResponse>>();
+                var orderResponses = orders.Adapt<List<OrderResponse>>();
+
+                // Cache local para evitar llamadas duplicadas
+                var productCache = new Dictionary<Guid, GetAllProductsResponseDto>();
+
+                foreach (var order in orderResponses)
+                {
+                    foreach (var orderItem in order.OrderItems)
+                    {
+                        if (!productCache.TryGetValue(orderItem.ProductID, out var product))
+                        {
+                            var productResponse = await _productsMicroserviceClient
+                                .GetProductByProductId(orderItem.ProductID, cancellationToken);
+
+                            if (productResponse?.Data is null)
+                                continue;
+
+                            product = productResponse.Data;
+                            productCache[orderItem.ProductID] = product;
+                        }
+                    }
+                }
 
                 response.IsSuccess = true;
-                response.Data = orderResponse;
+                response.Data = orderResponses;
                 response.Message = "Orders retrieved successfully.";
             }
             catch (Exception ex)
