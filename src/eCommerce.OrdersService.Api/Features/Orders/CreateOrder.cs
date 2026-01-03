@@ -1,7 +1,8 @@
 ﻿using Carter;
 using eCommerce.OrdersService.Api.Abstractions.Messaging;
 using eCommerce.OrdersService.Api.Entities;
-using eCommerce.OrdersService.Api.HttpClients;
+using eCommerce.OrdersService.Api.HttpClients.Products;
+using eCommerce.OrdersService.Api.HttpClients.Users;
 using eCommerce.OrdersService.Api.Shared.Bases;
 using FluentValidation;
 using Mapster;
@@ -67,11 +68,13 @@ public class CreateOrder
         private readonly IMongoCollection<Order> _orders;
         private readonly string collectionName = "orders";
         private readonly IUsersMicroserviceClient _usersMicroserviceClient;
+        private readonly IProductsMicroserviceClient _productsMicroserviceClient;
 
-        public Handler(IMongoDatabase mongoDatabase, IUsersMicroserviceClient usersMicroserviceClient)
+        public Handler(IMongoDatabase mongoDatabase, IUsersMicroserviceClient usersMicroserviceClient, IProductsMicroserviceClient productsMicroserviceClient)
         {
             _orders = mongoDatabase.GetCollection<Order>(collectionName);
             _usersMicroserviceClient = usersMicroserviceClient;
+            _productsMicroserviceClient = productsMicroserviceClient;
         }
 
         public async Task<BaseResponse<bool>> Handle(Command command, CancellationToken cancellationToken)
@@ -80,40 +83,76 @@ public class CreateOrder
 
             try
             {
-                var user = await _usersMicroserviceClient
-                    .GetUserByUserId(command.UserID, cancellationToken);
+                if (!await UserExists(command.UserID, cancellationToken))
+                    return Fail(response, "El usuario no existe.");
 
-                if (user is null)
-                {
-                    response.IsSuccess = false;
-                    response.Message = "User not found.";
-                    return response;
-                }
+                var invalidProductId = await GetInvalidProductId(command, cancellationToken);
+                if (invalidProductId is not null)
+                    return Fail(response, $"El producto con ID '{invalidProductId}' no existe.");
 
-                var order = command.Adapt<Order>();
-                order.OrderID = Guid.NewGuid();
-                order._id = order.OrderID;
-
-                foreach(OrderItem orderItem in order.OrderItems)
-                {
-                    orderItem._id = Guid.NewGuid();
-                    orderItem.TotalPrice = orderItem.Quantity * orderItem.UnitPrice;
-                }
-
-                order.OrderDate = DateTime.UtcNow;
-                order.TotalBill = order.OrderItems.Sum(oi => oi.TotalPrice);
+                var order = BuildOrder(command);
 
                 await _orders.InsertOneAsync(order, cancellationToken: cancellationToken);
 
                 response.IsSuccess = true;
-                response.Message = "Order created successfully.";
+                response.Message = "Se registró correctamente.";
             }
             catch (Exception ex)
             {
                 response.IsSuccess = false;
-                response.Message = $"An error occurred while creating the order. {ex.Message}";
+                response.Message = $"Ocurrió un error al registrar la orden: {ex.Message}";
             }
 
+            return response;
+        }
+
+        private async Task<bool> UserExists(Guid userId, CancellationToken cancellationToken)
+            => await _usersMicroserviceClient
+                .GetUserByUserId(userId, cancellationToken) is not null;
+
+        private async Task<Guid?> GetInvalidProductId(
+            Command command,
+            CancellationToken cancellationToken)
+        {
+            var productIds = command.OrderItems
+                .Select(x => x.ProductID)
+                .Distinct();
+
+            foreach (var productId in productIds)
+            {
+                var product = await _productsMicroserviceClient
+                    .GetProductByProductId(productId, cancellationToken);
+
+                if (product is null)
+                    return productId;
+            }
+
+            return null;
+        }
+
+        private static Order BuildOrder(Command command)
+        {
+            var order = command.Adapt<Order>();
+
+            order.OrderID = Guid.NewGuid();
+            order._id = order.OrderID;
+            order.OrderDate = DateTime.UtcNow;
+
+            foreach (var item in order.OrderItems)
+            {
+                item._id = Guid.NewGuid();
+                item.TotalPrice = item.Quantity * item.UnitPrice;
+            }
+
+            order.TotalBill = order.OrderItems.Sum(x => x.TotalPrice);
+
+            return order;
+        }
+
+        private static BaseResponse<bool> Fail(BaseResponse<bool> response, string message)
+        {
+            response.IsSuccess = false;
+            response.Message = message;
             return response;
         }
     }

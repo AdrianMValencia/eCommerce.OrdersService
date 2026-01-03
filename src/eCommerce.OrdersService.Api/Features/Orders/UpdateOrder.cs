@@ -1,7 +1,7 @@
 ﻿using Carter;
 using eCommerce.OrdersService.Api.Abstractions.Messaging;
 using eCommerce.OrdersService.Api.Entities;
-using eCommerce.OrdersService.Api.HttpClients;
+using eCommerce.OrdersService.Api.HttpClients.Users;
 using eCommerce.OrdersService.Api.Shared.Bases;
 using Mapster;
 using Microsoft.AspNetCore.Mvc;

@@ -1,6 +1,6 @@
 ﻿using eCommerce.OrdersService.Api.Contracts.Users;
 
-namespace eCommerce.OrdersService.Api.HttpClients;
+namespace eCommerce.OrdersService.Api.HttpClients.Users;
 
 public interface IUsersMicroserviceClient
 {

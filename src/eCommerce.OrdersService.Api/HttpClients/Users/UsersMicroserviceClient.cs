@@ -1,7 +1,7 @@
 ﻿using eCommerce.OrdersService.Api.Contracts.Users;
 using System.Net;
 
-namespace eCommerce.OrdersService.Api.HttpClients;
+namespace eCommerce.OrdersService.Api.HttpClients.Users;
 
 public class UsersMicroserviceClient(HttpClient httpClient) : IUsersMicroserviceClient
 {

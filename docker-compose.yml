@@ -1,16 +1,26 @@
 services:
   ecommerce.ordersservice.api:
-    image: adrianmvalencia/ecommerce-microservice-orders:v1.0
+    # image: adrianmvalencia/ecommerce-microservice-orders:v1.0
+    build:
+     context: .
+     dockerfile: src/eCommerce.OrdersService.Api/Dockerfile
+    image: ecommerce.ordersservice.api
     environment:
      MONGODB_HOST: mongo-host-microserviceorders
      MONGODB_PORT: 27017
      MONGODB_DATABASE: eCommerceOrdersServiceDb
-     UsersMicroserviceName: microservice-users
+     UsersMicroserviceName: ecommerce.usersservice.api
      UsersMicroservicePort: 9090
+     ProductsMicroserviceName: ecommerce.productsservice.api
+     ProductsMicroservicePort: 8080
     ports:
      - 7000:7000
     networks:
+     - microservices-orders-network
      - ecommerce-global-network
+    depends_on:
+     - container-mongodb
+ 
   container-mongodb:
     image: mongo:latest
     ports:
@@ -18,9 +28,12 @@ services:
     volumes:
      - ./mongo-init:/docker-entrypoint-initdb.d
     networks:
-     - ecommerce-global-network
+     - microservices-orders-network
     hostname: mongo-host-microserviceorders
+
 networks:
+  microservices-orders-network:
+   driver: bridge  
   ecommerce-global-network:
    driver: bridge
    external: true
