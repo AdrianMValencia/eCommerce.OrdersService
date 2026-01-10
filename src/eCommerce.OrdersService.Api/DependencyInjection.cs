@@ -1,4 +1,6 @@
 ﻿using eCommerce.OrdersService.Api.Abstractions.Messaging;
+using eCommerce.OrdersService.Api.Features.Products.Consumers;
+using eCommerce.OrdersService.Api.Features.Products.HostedServices;
 using eCommerce.OrdersService.Api.Shared.Behaviors;
 using FluentValidation;
 using Mapster;
@@ -40,6 +42,9 @@ public static class DependencyInjection
         {
             options.Configuration = $"{Environment.GetEnvironmentVariable("REDIS_HOST")}:{Environment.GetEnvironmentVariable("REDIS_PORT")}";
         });
+
+        services.AddTransient<IProductNameUpdatedConsumer, ProductNameUpdatedConsumer>();
+        services.AddHostedService<ProductNameUpdateHostedService>();
 
         return services;
     }
